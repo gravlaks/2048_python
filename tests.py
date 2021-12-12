@@ -80,7 +80,47 @@ def test_move_right():
     ]))
     ), "Easy merge failed"
 
+def test_move_down():
+    board = Board()
+    board.board = np.array([
+       [10, 1, 2, 4],
+       [1, 3, 0, 4],
+        [1, 3, 3, 1], 
+        [10, 0, 0,10] 
+    ])
+    board.move(Dirs.DOWN)
+
+    assert(
+        np.allclose(board.board, 
+        np.array([
+       [0, 0, 0, 0],
+       [10, 0, 0, 5],
+        [2, 1, 2, 1], 
+        [10, 4, 3,10] 
+    ]))
+    ), "Easy merge failed"
+
+def test_move_up():
+    board = Board()
+    board.board = np.array([
+       [10, 1, 2, 4],
+       [1, 3, 0, 4],
+        [1, 3, 3, 1], 
+        [10, 0, 0,10] 
+    ])
+    board.move(Dirs.UP)
+    assert(
+        np.allclose(board.board, 
+        np.array([
+       [10, 1, 2, 5],
+       [2, 4, 3, 1],
+        [10, 0, 0, 10], 
+        [0, 0, 0,0] 
+    ]))
+    ), "Easy merge failed"
 
 if __name__ == '__main__':
     test_merge_left()
     test_move_right()
+    test_move_up()
+    test_move_down()

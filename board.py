@@ -41,6 +41,27 @@ class Board:
             for row in self.board:
                 for _ in range(self.dims[1]):
                     self.move_row_right(row)
+        
+        if dir == Dirs.UP:
+            for j in range(self.dims[1]):
+                for _ in range(self.dims[0]):
+                    self.move_row_left(self.board[:, j])
+
+        if dir == Dirs.DOWN:
+            for j in range(self.dims[1]):
+                for _ in range(self.dims[0]):
+                    self.move_row_right(self.board[:, j])
+    def move_row_up(self, col):
+        if len(col) == 1:
+            return
+        
+        if col[0] == 0:
+            col[0] = col[1]
+            col[1] = 0
+        elif col[0] == col[1]:
+            col[0] = col[0]+1
+            col[1] = 0
+        self.move_row_up(col[1:])
 
     def move_row_left(self, row):
         if len(row) == 1:
