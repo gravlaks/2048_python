@@ -119,8 +119,39 @@ def test_move_up():
     ]))
     ), "Easy merge failed"
 
+def test_get_available_moves():
+
+    board = Board()
+    board.board = np.array([
+       [10, 1, 2, 4],
+       [1, 3, 0, 4],
+        [1, 3, 3, 1], 
+        [10, 0, 0,10] 
+    ])  
+    assert(
+        board.get_available_moves() == [Dirs.LEFT, Dirs.RIGHT, Dirs.UP, Dirs.DOWN]
+    ), "easy"
+    board.board = np.array([
+       [10, 1, 2, 2],
+       [1, 3, 1, 4],
+        [2, 8, 3, 1], 
+        [10, 4, 1,10] 
+    ])  
+    assert(
+        board.get_available_moves() == [Dirs.LEFT, Dirs.RIGHT]
+    ), "easy"
+
+    assert(np.allclose(np.array([
+       [10, 1, 2, 2],
+       [1, 3, 1, 4],
+        [2, 8, 3, 1], 
+        [10, 4, 1,10] 
+    ]) , board.board)), "board changed during checking"
+
+    
 if __name__ == '__main__':
     test_merge_left()
     test_move_right()
     test_move_up()
     test_move_down()
+    test_get_available_moves()
