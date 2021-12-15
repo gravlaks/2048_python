@@ -1,79 +1,100 @@
+import numpy as np
+from game import Game, Simulation
 
-class MDP_mcts:
-    def __init__(self, gamma, state_space, action_space, T, R, TR):
-        self.gamma = gamma
-        self.state_space = state_space
-        self.action_space = action_space
-        self.T = T
-        self.R = R
-        self.TR = TR
+from tqdm import tqdm
 
-struct MDP_mcts
-    γ
-    𝒮
-    𝒜
-    T
-    R
-    TR
-end
+class MCTS:
+    def __init__(self, mdp, N, Q, d, m, U):
+        self.mdp = mdp
+        if N is not None:
+            self.N = N
+        else:
+            self.N = {}
+        if Q is not None:
+            self.Q = Q
+        else:
+            self.Q = {}
+        self.d = d
+        self.m = m
+        self.U = U
 
-struct MonteCarloTreeSearch
-    𝒫 # problem
-    N # visit counts
-    Q # action value estimates
-    d # depth
-    m # number of simulations
-    c # exploration constant
-    U # value function estimate
-end
 
-function (π::MonteCarloTreeSearch)(s)
-    for k in 1:π.m
-        simulate!(π, s)
-    end
-    possibles = possible_moves(s)
-    possible_actions = possibles[1]
 
-    dir = argmax(
-        Dict(a=>π.Q[(s,a)] for a in possible_actions)
+        self.c = 0.1
+        self.gamma = 0.9
+
+
+    def TR(self,s, a):
+        simulation = Simulation(s)
+        simulation.simulate_next_state(a)
+ 
+        return simulation.board
+    
+
+    def pi(self, s):
+        for k in tqdm(range(self.m)):
+            self.simulate(s)
+
+        moves = s.get_available_moves()
+        
+        moves_dict = dict({a: self.Q[(s,a)] for a in moves})
+        dir = max(
+             moves_dict, key=moves_dict.get
+        )
+        return dir
+
+    def explore(self, s):
+        moves = s.get_available_moves()
+        Ns = sum(self.N[(s, a)] for a in moves)
+        eps = 1e-6
+        Ns = max(1, Ns)
+
+        
+        Qs_ucbs = {a:self.Q[(s,a)] + self.c*np.sqrt(np.log(Ns)/max(self.N[(s,a)], eps)) for a in moves}
+        dir = max(Qs_ucbs, key=Qs_ucbs.get)
+        return dir
+
+
+    def simulate(self, s, d=None):
+        if d is None:
+            d = self.d
+        if d == 0:
+            return self.U(s)
+        
+        moves = s.get_available_moves()
+        if len(moves) == 0:
+            return s.get_value()
+        if (s, moves[0]) not in self.N:
+            for a in moves:
+                self.N[(s, a)] = 0
+                self.Q[(s, a)] = 0
+            return self.U(s)
+        a = self.explore(s)
+        s_prime = self.TR(s, a)
+        q = self.gamma*self.simulate(s_prime, d-1)
+        self.N[(s, a)] += 1
+        self.Q[(s, a)] += (q-self.Q[(s, a)])/self.N[(s, a)]
+        return q
+
+def U(s):
+    simulation = Simulation(s)
+    return simulation.random_rollout()
+
+if __name__ == '__main__':
+    game = Game()
+    mcts = MCTS(
+        mdp = None, 
+        N=None,
+        Q = None,
+        d = 2,
+        m = 100,
+        U = U
     )
-    return dir
-end
-
-bonus(Nsa, Ns) = Nsa == 0 ? Inf : sqrt(log(Ns)/Nsa)
-
-function explore(π::MonteCarloTreeSearch, s)
-    N, Q, c = π.N, π.Q, π.c
-    (possible_actions, _) = possible_moves(s)
-
-    Ns = sum(N[(s,a)] for a in possible_actions)
-    Ns = (Ns == 0) ? Inf : Ns
-    dir = argmax(
-        Dict(a=>Q[(s,a)] + c*sqrt(log(Ns)/N[(s,a)]) for a in possible_actions)
-    )
-    return dir
-end
-
-
-
-function simulate!(π::MonteCarloTreeSearch, s, d=π.d)
-    if d ≤ 0
-        return π.U(s)
-    end
-    𝒫, N, Q, c = π.𝒫, π.N, π.Q, π.c
-    TR, γ = 𝒫.TR, 𝒫.γ
-    (𝒜, _) = possible_moves(s)
-    if !haskey(N, (s, first(𝒜)))
-        for a in 𝒜
-            N[(s,a)] = 0
-            Q[(s,a)] = 0.0
-        end
-        return π.U(s)
-    end
-    a = explore(π, s)
-    s_prime = TR(s,a) #no reward
-    q = γ*simulate!(π, s_prime, d-1)
-    N[(s,a)] += 1
-    Q[(s,a)] += (q-Q[(s,a)])/N[(s,a)]
-    return q
-end
+    moves = game.board.get_available_moves()
+    while not len(moves):
+        s = game.board
+        s.display()
+        dir = mcts.pi(s)
+        
+        game.take_turn(dir)
+        moves = game.board.get_available_moves()

@@ -9,9 +9,12 @@ class Dirs(Enum):
     DOWN = 3
 
 class Board:
-    def __init__(self, dims = (4, 4)):
+    def __init__(self, board = None, dims = (4, 4)):
         self.dims = dims
-        self.reset()
+        if board is None:
+            self.reset()
+        else:
+            self.board = board.copy()
     def reset(self):
         self.board = np.zeros(self.dims)
         self.add_new_num()
@@ -43,57 +46,64 @@ class Board:
             board = self.board
         if dir == Dirs.LEFT:
             for row in board:
-                for _ in range(self.dims[1]):
-                    self.move_row_left(row)
+                for i in range(self.dims[1]):
+                    
+                    self.shift(row)
+                self.merge(row)
+                for i in range(self.dims[1]):
+                    self.shift(row)
 
         if dir == Dirs.RIGHT:
             for row in board:
-                for _ in range(self.dims[1]):
-                    self.move_row_right(row)
+                for i in range(self.dims[1]):
+                    self.shift(row[::-1])
+                    #self.move_row_right(row)
+
+                self.merge(row[::-1])
+                for i in range(self.dims[1]):
+                    self.shift(row[::-1])
         
         if dir == Dirs.UP:
             for j in range(self.dims[1]):
-                for _ in range(self.dims[0]):
-                    self.move_row_left(board[:, j])
+                for _ in range(self.dims[0]):                    
+                    self.shift(board[:, j])
+                self.merge(board[:, j])
+                for i in range(self.dims[0]):
+                    self.shift(board[:, j])
 
         if dir == Dirs.DOWN:
             for j in range(self.dims[1]):
-                for _ in range(self.dims[0]):
-                    self.move_row_right(board[:, j])
+                for _ in range(self.dims[0]):                    
+                    self.shift(board[::-1, j])
 
-       
-        
+                self.merge(board[::-1, j])
+                for i in range(self.dims[0]):
+                    self.shift(board[::-1, j])
+
         if copy:
             return board
     def add_new_num(self):
         l_idxs, r_idxs = np.nonzero(self.board==0)
         rand_idx = np.random.randint(0, len(l_idxs))
-        print(l_idxs[rand_idx], r_idxs[rand_idx])
         self.board[l_idxs[rand_idx], r_idxs[rand_idx]] = np.random.randint(1,3)
 
-
-    def move_row_left(self, row):
+    def merge(self, row):
         if len(row) == 1:
             return
-        if row[0] == 0:
-            row[0] = row[1]
-            row[1] = 0
-        elif row[0] == row[1]:
+        if row[0] == row[1] and row[1] != 0:
             row[0] = row[0]+1
             row[1] = 0
-        self.move_row_left(row[1:])
+        self.merge(row[1:])
 
-    def move_row_right(self, row):
+    def shift(self, row):
+        
         if len(row) == 1:
             return
-        if row[-1] == 0:
-            row[-1] = row[-2]
-            row[-2] = 0
-        elif row[-1] == row[-2]:
-            row[-1] = row[-2]+1
-            row[-2] = 0
-        
-        self.move_row_right(row[:-1])
+        if row[0] == 0 and row[1] != 0:
+            row[0] = row[1]
+            row[1] = 0
+        self.shift(row[1:])
+
 
     def get_available_moves(self):
         moves = []
@@ -103,6 +113,10 @@ class Board:
             if not np.allclose(potential, board):
                 moves.append(dir)
         return moves
+
+    def get_value(self):
+        return self.board.sum()
+
 if __name__ == '__main__':
     board = Board()
 
