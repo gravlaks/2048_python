@@ -1,10 +1,12 @@
-import numpy as np
-from game import Game, Simulation
-
 from tqdm import tqdm
+import numpy as np
+from game import Simulation,  Game
 
-class MCTS:
-    def __init__(self, mdp, N, Q, d, m, U):
+class MCTS_Mod:
+    #This class inputs a U that gives both 
+    #1. a probability distribution p
+    #2. a value
+    def __init__(self, mdp, N, Q, d, m, U, P):
         self.mdp = mdp
         if N is not None:
             self.N = N
@@ -14,6 +16,10 @@ class MCTS:
             self.Q = Q
         else:
             self.Q = {}
+        if P is not None:
+            self.P = P
+        else:
+            self.P = {}
         self.d = d
         self.m = m
         self.U = U
@@ -37,7 +43,7 @@ class MCTS:
 
         moves = s.get_available_moves()
         
-        moves_dict = dict({a: self.Q[(s,a)] for a in moves})
+        moves_dict = dict({a: self.P[(s,a)]*self.Q[(s,a)] for a in moves})
         dir = max(
              moves_dict, key=moves_dict.get
         )
@@ -50,7 +56,7 @@ class MCTS:
         Ns = max(1, Ns)
 
         
-        Qs_ucbs = {a:self.Q[(s,a)] + self.c*np.sqrt(np.log(Ns)/max(self.N[(s,a)], eps)) for a in moves}
+        Qs_ucbs = {a:self.Q[(s,a)] + self.P[(s, a)]*self.c*np.sqrt(np.log(Ns)/max(self.N[(s,a)], eps)) for a in moves}
         dir = max(Qs_ucbs, key=Qs_ucbs.get)
         return dir
 
@@ -62,13 +68,15 @@ class MCTS:
             return self.U(s)
         
         moves = s.get_available_moves()
+        s_val, p = self.U(s)
         if len(moves) == 0:
             return s.get_value()
         if (s, moves[0]) not in self.N:
             for a in moves:
                 self.N[(s, a)] = 0
                 self.Q[(s, a)] = 0
-            return self.U(s)
+                self.P[(s, a)] = p[a]
+            return s_val
         a = self.explore(s)
         s_prime = self.TR(s, a)
         q = self.gamma*self.simulate(s_prime, d-1)
@@ -76,19 +84,26 @@ class MCTS:
         self.Q[(s, a)] += (q-self.Q[(s, a)])/self.N[(s, a)]
         return q
 
-def U(s):
+
+def U_mod(s):
     simulation = Simulation(s)
-    return simulation.random_rollout()
+    val = simulation.random_rollout()
+    moves = s.get_available_moves()
+    p = {move: 1/len(moves) for move in moves}
+    #uniform distribution
+    return (val, p)
+
 
 if __name__ == '__main__':
     game = Game()
-    mcts = MCTS(
+    mcts = MCTS_Mod(
         mdp = None, 
         N=None,
         Q = None,
         d = 2,
         m = 5,
-        U = U
+        U = U_mod,
+        P = None
     )
     moves = game.board.get_available_moves()
     game.board.display()
@@ -99,4 +114,3 @@ if __name__ == '__main__':
         game.take_turn(dir)
         moves = game.board.get_available_moves()
         s.display()
-
