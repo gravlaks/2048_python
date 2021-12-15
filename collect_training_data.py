@@ -3,6 +3,7 @@ import torch
 from game import Game
 import numpy as np
 from neural_network import Net
+from sklearn.preprocessing import OneHotEncoder
 gameCount = 10
 
 def U_numpy(network):
@@ -24,32 +25,33 @@ def play_one_game(mcts):
 
     dims = (1,4, 4)
     boards = []
-    
+    labels = []
     while moves:
         s = game.board
         board_copy = s.board.copy()
         boards.append(board_copy)
         dir = mcts.pi(s)
+        arr = np.zeros((4,))
+        arr[dir.value] = 1
+        labels.append([arr])
         
         game.take_turn(dir)
         moves = s.get_available_moves()
         s.display()
     print(game.board.get_exp_value())
-    boards = np.array(boards)
-    labels = np.ones((boards.shape[0]))*game.board.get_exp_value()
+    exp_val = game.board.get_exp_value()
+    for label in labels:
+        label.append(exp_val)
     return boards, labels
 
 def collect(network, episode_count, mcts):
-    data = np.empty((1,4,4))
-    target = np.empty(1,)
+    data = []
+    target = []
     
     for episode in range(episode_count):
         boards, labels = play_one_game(mcts)
-        print(labels)
-        data = np.vstack((data, boards))
-        target = np.append(target, labels)
-    print(target.shape)
-    print(data.shape)
+        data = data+ boards
+        target = target+labels
     print(target[1])
     return data[1:], target[1:]
 if __name__ == '__main__':
@@ -61,10 +63,11 @@ if __name__ == '__main__':
         N=None,
         Q = None,
         d = 2,
-        m = 50,
+        m = 2,
         U = U_numpy(net),
         P = None
     )
     data, target = collect(net,2, mcts)
+    data = np.array(data)
     print(target)
     print(target[0])
