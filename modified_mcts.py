@@ -73,9 +73,9 @@ class MCTS_Mod:
         print("p", p)
         print("s_val", s_val)
         if len(moves) == 0:
-            return s.get_value()
+            return s_val
         if (s, moves[0]) not in self.N:
-            for a in moves:
+            for a in Dirs:
                 self.N[(s, a)] = 0
                 self.Q[(s, a)] = 0
             

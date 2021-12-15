@@ -116,6 +116,15 @@ class Board:
 
     def get_value(self):
         return self.board.sum()
+    def get_exp_value(self):
+        powered = 2**self.board
+        sum_board = 0
+        for row in powered:
+            for elem in row:
+                if elem != 1:
+                    sum_board += elem
+        print(sum_board)
+        return sum_board
 
 if __name__ == '__main__':
     board = Board()
