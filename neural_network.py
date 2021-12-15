@@ -33,14 +33,14 @@ class Net(nn.Module):
             ),
             nn.Sequential(
                 nn.Linear(hidden_units, 1),
-                nn.Sigmoid()
+                nn.ReLU()
             ),        )
     def forward(self, x):
         x = self.conv1(x)
         x = self.flatten(x)
         x = self.fc1(x) 
         out = self.output_layers(x)
-        return x
+        return out
 
 
 class Split(nn.Module):

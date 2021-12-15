@@ -1,6 +1,7 @@
 from tqdm import tqdm
+
 import numpy as np
-from game import Simulation,  Game
+from game import Simulation,  Game, Dirs
 
 class MCTS_Mod:
     #This class inputs a U that gives both 
@@ -43,7 +44,7 @@ class MCTS_Mod:
 
         moves = s.get_available_moves()
         
-        moves_dict = dict({a: self.P[(s,a)]*self.Q[(s,a)] for a in moves})
+        moves_dict = dict({a: self.P[s][a.value]*self.Q[(s,a)] for a in moves})
         dir = max(
              moves_dict, key=moves_dict.get
         )
@@ -54,9 +55,9 @@ class MCTS_Mod:
         Ns = sum(self.N[(s, a)] for a in moves)
         eps = 1e-6
         Ns = max(1, Ns)
-
+        print("a value", Dirs.LEFT.value)
         
-        Qs_ucbs = {a:self.Q[(s,a)] + self.P[(s, a)]*self.c*np.sqrt(np.log(Ns)/max(self.N[(s,a)], eps)) for a in moves}
+        Qs_ucbs = {a:self.Q[(s,a)] + self.P[s][a.value]*self.c*np.sqrt(np.log(Ns)/max(self.N[(s,a)], eps)) for a in moves}
         dir = max(Qs_ucbs, key=Qs_ucbs.get)
         return dir
 
@@ -68,14 +69,17 @@ class MCTS_Mod:
             return self.U(s)
         
         moves = s.get_available_moves()
-        s_val, p = self.U(s)
+        p, s_val = self.U(s)
+        print("p", p)
+        print("s_val", s_val)
         if len(moves) == 0:
             return s.get_value()
         if (s, moves[0]) not in self.N:
             for a in moves:
                 self.N[(s, a)] = 0
                 self.Q[(s, a)] = 0
-                self.P[(s, a)] = p[a]
+            
+            self.P[s] = p
             return s_val
         a = self.explore(s)
         s_prime = self.TR(s, a)
