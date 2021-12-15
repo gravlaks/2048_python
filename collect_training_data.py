@@ -54,7 +54,7 @@ def collect(episode_count, mcts):
 def save(data, target, filename):
     np.save(f"datasets/data_{filename}.np", data)
     with open(f"datasets/data_{filename}.pkl", "wb") as f:
-        pickle.dump(target)
+        pickle.dump(target, f)
 if __name__ == '__main__':
     net = Net()
     net = net.float()
