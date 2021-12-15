@@ -99,4 +99,5 @@ if __name__ == '__main__':
         game.take_turn(dir)
         moves = game.board.get_available_moves()
         s.display()
+    print(s.get_exp_value())
 

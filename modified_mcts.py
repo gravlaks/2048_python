@@ -39,7 +39,7 @@ class MCTS_Mod:
     
 
     def pi(self, s):
-        for k in tqdm(range(self.m)):
+        for k in range(self.m):
             self.simulate(s)
 
         moves = s.get_available_moves()
@@ -55,7 +55,6 @@ class MCTS_Mod:
         Ns = sum(self.N[(s, a)] for a in moves)
         eps = 1e-6
         Ns = max(1, Ns)
-        print("a value", Dirs.LEFT.value)
         
         Qs_ucbs = {a:self.Q[(s,a)] + self.P[s][a.value]*self.c*np.sqrt(np.log(Ns)/max(self.N[(s,a)], eps)) for a in moves}
         dir = max(Qs_ucbs, key=Qs_ucbs.get)
@@ -70,8 +69,7 @@ class MCTS_Mod:
         
         moves = s.get_available_moves()
         p, s_val = self.U(s)
-        print("p", p)
-        print("s_val", s_val)
+ 
         if len(moves) == 0:
             return s_val
         if (s, moves[0]) not in self.N:

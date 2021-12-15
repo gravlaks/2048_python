@@ -48,7 +48,6 @@ class CustomLoss(nn.Module):
     def forward(self, output, labels):
         #print(output, labels)
         _, label= labels[0].clone().detach().max(dim=0)
-        print(labels[1])
         loss_p = nn.CrossEntropyLoss()(output[0], torch.tensor([label]))
         loss_v = nn.MSELoss()(output[1], labels[1].unsqueeze(0).float())
         return sum([loss_p,loss_v]).float()
@@ -79,7 +78,7 @@ def get_dummy():
         )
     return dummy_data, dummy_labels
 
-def train_network(network, data, target):
+def train_network(network, data, target, epochs_count):
     network.train()
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     data = torch.from_numpy(data).float().to(device)
@@ -91,10 +90,9 @@ def train_network(network, data, target):
 
     criterion = CustomLoss()
 
-    optimizer = torch.optim.Adam(params = net.parameters(), lr=0.1)
+    optimizer = torch.optim.Adam(params = network.parameters(), lr=0.1)
 
-    num_epochs = 10
-    for epoch in range(num_epochs):
+    for _ in range(epochs_count):
         for sample, label in zip(torch_data, torch_target):
             sample = sample.unsqueeze(0)
             output = network(sample)
