@@ -46,39 +46,36 @@ class Board:
             board = self.board
         if dir == Dirs.LEFT:
             for row in board:
-                for i in range(self.dims[1]):
-                    
-                    self.shift(row)
+                for i in range(0,3):
+                    self.shift(row[:4-i])
                 self.merge(row)
-                for i in range(self.dims[1]):
-                    self.shift(row)
+                
+                self.shift(row)
 
         if dir == Dirs.RIGHT:
             for row in board:
-                for i in range(self.dims[1]):
-                    self.shift(row[::-1])
-                    #self.move_row_right(row)
+                self.shift(row[::-1])
+                self.shift(row[:0:-1])
+                self.shift(row[:1:-1])
 
                 self.merge(row[::-1])
-                for i in range(self.dims[1]):
-                    self.shift(row[::-1])
+                self.shift(row[::-1])
         
         if dir == Dirs.UP:
             for j in range(self.dims[1]):
-                for _ in range(self.dims[0]):                    
-                    self.shift(board[:, j])
+                for i in range(self.dims[0]):                    
+                    self.shift(board[:4-i, j])
                 self.merge(board[:, j])
-                for i in range(self.dims[0]):
-                    self.shift(board[:, j])
+                self.shift(board[:, j])
 
         if dir == Dirs.DOWN:
             for j in range(self.dims[1]):
-                for _ in range(self.dims[0]):                    
-                    self.shift(board[::-1, j])
+                self.shift(board[::-1, j])
+                self.shift(board[:1:-1, j])
+                self.shift(board[:2:-1, j])
 
                 self.merge(board[::-1, j])
-                for i in range(self.dims[0]):
-                    self.shift(board[::-1, j])
+                self.shift(board[::-1, j])
 
         if copy:
             return board

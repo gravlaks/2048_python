@@ -10,6 +10,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torchsummary import summary
+from tqdm import tqdm
 
 class Net(nn.Module):
     def __init__(self):
@@ -26,6 +27,9 @@ class Net(nn.Module):
         self.fc1 = nn.Linear(in_features = 4*4*output_features, 
                             out_features = hidden_units)
 
+        self.fc2 = nn.Linear(in_features = hidden_units, 
+                            out_features = hidden_units)
+        self.relu = nn.ReLU()
         self.output_layers = Split(
             nn.Sequential(
                 nn.Linear(hidden_units, 4),
@@ -37,8 +41,14 @@ class Net(nn.Module):
             ),        )
     def forward(self, x):
         x = self.conv1(x)
+        x = self.relu(x)
+    
         x = self.flatten(x)
         x = self.fc1(x) 
+        #x = self.relu(x)
+        #x = self.fc2(x) 
+        x = self.relu(x)
+
         out = self.output_layers(x)
         return out
 
@@ -46,10 +56,13 @@ class CustomLoss(nn.Module):
     def __init__(self):
         super(CustomLoss, self).__init__()
     def forward(self, output, labels):
-        #print(output, labels)
-        _, label= labels[0].clone().detach().max(dim=0)
-        loss_p = nn.CrossEntropyLoss()(output[0], torch.tensor([label]))
-        loss_v = nn.MSELoss()(output[1], labels[1].unsqueeze(0).float())
+        output_p = output[:, :4]
+        output_v = output[:, 4]
+        label_p = labels[:, :4]
+        label_v = labels[:, 4]
+
+        loss_p = nn.CrossEntropyLoss()(output_p, label_p)
+        loss_v = nn.MSELoss()(output_v, label_v/10)
         return sum([loss_p,loss_v]).float()
     
 
@@ -61,45 +74,47 @@ class Split(nn.Module):
         self.modules = modules
 
     def forward(self, inputs):
-        return [module(inputs) for module in self.modules]   
+        return torch.hstack((self.modules[0](inputs), self.modules[1](inputs)))
 
 
 def get_dummy():
-    dummy_data = np.random.rand(10, 4, 4).astype(np.float32)
+    dummy_data = np.random.rand(100, 4, 4).astype(np.float32)
     dummy_labels = []
-    for i in range(10):
+    for i in range(100):
         if i %2:
             dummy_labels.append(
-            [np.array([0, 0, 0, 1], dtype=np.float32), np.array([3], dtype=np.float32)]
+            np.array([0, 0, 0, 1, 3], dtype=np.float32)
         )
         else:
             dummy_labels.append(
-            [np.array([0, 0, 1, 0], dtype=np.float32), np.array([3], dtype=np.float32)]
+            np.array([0, 0, 1, 0, 3], dtype=np.float32)
         )
-    return dummy_data, dummy_labels
+    print("data", dummy_data.shape)
+    print("labels", np.array(dummy_labels).shape)
+    return dummy_data, np.array(dummy_labels, dtype=np.float32)
 
-def train_network(network, data, target, epochs_count):
+def train_network(network, data, target, epochs_count=10):
     network.train()
+    torch.cuda.empty_cache()
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    data = torch.from_numpy(data).float().to(device)
-    torch_data = torch.unsqueeze(data, 1)
-    print(torch_data.size())
-    torch_target = [
-        [torch.from_numpy(elem[0]).squeeze().float().to(device), torch.tensor([elem[1]], dtype=float).to(device)] for elem in target
-    ]
+ 
 
     criterion = CustomLoss()
 
-    optimizer = torch.optim.Adam(params = network.parameters(), lr=0.1)
+    optimizer = torch.optim.Adam(params = network.parameters(), lr=0.001)
+    batch_size = min(data.shape[0], 100)
+    for i in tqdm(range(epochs_count)):
+        for idx in range(data.shape[0]//batch_size):
+            optimizer.zero_grad()
 
-    for _ in range(epochs_count):
-        for sample, label in zip(torch_data, torch_target):
-            sample = sample.unsqueeze(0)
-            output = network(sample)
-            loss = criterion(output, label)
+            samples = torch.from_numpy(data[idx*batch_size: (idx+1)*batch_size]).float().to(device).unsqueeze(1)
+            targets = torch.from_numpy(target[idx*batch_size: (idx+1)*batch_size]).float().to(device)
+            output = network(samples)
+            loss = criterion(output, targets)
             loss.backward()
             optimizer.step()
-        pass
+    print(loss)
+        
 
 
     print("completed training")

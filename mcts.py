@@ -69,6 +69,7 @@ class MCTS:
                 self.N[(s, a)] = 0
                 self.Q[(s, a)] = 0
             return self.U(s)
+        print("exploring")
         a = self.explore(s)
         s_prime = self.TR(s, a)
         q = self.gamma*self.simulate(s_prime, d-1)

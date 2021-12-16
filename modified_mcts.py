@@ -27,7 +27,7 @@ class MCTS_Mod:
 
 
 
-        self.c = 0.1
+        self.c = 100
         self.gamma = 0.9
 
 
@@ -43,7 +43,6 @@ class MCTS_Mod:
             self.simulate(s)
 
         moves = s.get_available_moves()
-        
         moves_dict = dict({a: self.P[s][a.value]*self.Q[(s,a)] for a in moves})
         dir = max(
              moves_dict, key=moves_dict.get
@@ -53,10 +52,8 @@ class MCTS_Mod:
     def explore(self, s):
         moves = s.get_available_moves()
         Ns = sum(self.N[(s, a)] for a in moves)
-        eps = 1e-6
-        Ns = max(1, Ns)
         
-        Qs_ucbs = {a:self.Q[(s,a)] + self.P[s][a.value]*self.c*np.sqrt(np.log(Ns)/max(self.N[(s,a)], eps)) for a in moves}
+        Qs_ucbs = {a:self.Q[(s,a)] + self.P[s][a.value]*self.c*np.sqrt(Ns/(self.N[(s, a)]+1)) for a in moves}
         dir = max(Qs_ucbs, key=Qs_ucbs.get)
         return dir
 
@@ -65,11 +62,13 @@ class MCTS_Mod:
         if d is None:
             d = self.d
         if d == 0:
-            return self.U(s)
+            p, s_val = self.U(s)
+            return s_val
         
         moves = s.get_available_moves()
         p, s_val = self.U(s)
- 
+        s_val = s_val[0]
+        p = p/sum(p)
         if len(moves) == 0:
             return s_val
         if (s, moves[0]) not in self.N:
@@ -87,32 +86,5 @@ class MCTS_Mod:
         return q
 
 
-def U_mod(s):
-    simulation = Simulation(s)
-    val = simulation.random_rollout()
-    moves = s.get_available_moves()
-    p = {move: 1/len(moves) for move in moves}
-    #uniform distribution
-    return (val, p)
 
 
-if __name__ == '__main__':
-    game = Game()
-    mcts = MCTS_Mod(
-        mdp = None, 
-        N=None,
-        Q = None,
-        d = 2,
-        m = 5,
-        U = U_mod,
-        P = None
-    )
-    moves = game.board.get_available_moves()
-    game.board.display()
-    while moves:
-        s = game.board
-        dir = mcts.pi(s)
-        
-        game.take_turn(dir)
-        moves = game.board.get_available_moves()
-        s.display()

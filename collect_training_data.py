@@ -1,20 +1,33 @@
 from modified_mcts import MCTS_Mod
 import torch
-from game import Game
+from game import Game, Simulation
 import numpy as np
 from neural_network import Net, train_network
 import pickle
-
+from datetime import datetime
 gameCount = 10
-
+counter = 0
 def U_numpy(network):
     def U(s):
+        global counter
+        counter += 1
         s = torch.from_numpy(s.board).float()
         s = s.expand(1, 1, -1, -1)
         out = network(s)
-        return (out[0].detach().numpy().flatten(), 
-                out[1].detach().numpy().flatten())
+        
+        return (out[0, :4].detach().numpy().flatten(), 
+                out[0, 4:5].detach().numpy().flatten())
     return U
+
+def random_rollout(s):
+    simulation = Simulation(s)
+    t1 = datetime.now()
+    ret = (np.ones((4, ))*1/4, simulation.random_rollout())
+    #print(datetime.now()-t1)
+    return ret
+    
+
+
 def play_one_game(mcts):
     game = Game()
    
@@ -29,15 +42,14 @@ def play_one_game(mcts):
         dir = mcts.pi(s)
         arr = np.zeros((4,))
         arr[dir.value] = 1
-        labels.append([arr])
+        labels.append(arr)
         
         game.take_turn(dir)
         moves = s.get_available_moves()
     s.display()
-    print(game.board.get_exp_value())
-    exp_val = game.board.get_exp_value()
-    for label in labels:
-        label.append(exp_val)
+    exp_val = game.board.get_value()
+    for i, label in enumerate(labels):
+        labels[i] = np.hstack((label, exp_val))
     return boards, labels
 
 def collect(episode_count, mcts):
@@ -46,10 +58,10 @@ def collect(episode_count, mcts):
     
     for episode in range(episode_count):
         boards, labels = play_one_game(mcts)
-        data = data+ boards
+        data = data+boards
         target = target+labels
         print("episode done")
-    return data[1:], target[1:]
+    return np.array(data[1:]), np.array(target[1:])
 
 def save(data, target, filename):
     np.save(f"datasets/data_{filename}.np", data)
@@ -63,15 +75,16 @@ if __name__ == '__main__':
         mdp = None, 
         N=None,
         Q = None,
-        d = 2,
-        m = 100,
+        d = 3,
+        m = 50,
         U = U_numpy(net),
         P = None
     )
 
-    for i in range(5):
-        data, target = collect(episode_count=10, mcts=mcts)
-        save(data, target, f"iteration_{i}")
-        train_network(net, np.array(data), target, epochs_count=1000)
-    
+    for i in range(20):
+        data, target = collect(episode_count=20, mcts=mcts)
+        #save(data, target, f"iteration_{i}")
+        train_network(net, data, target, epochs_count=500)
+    data, target = collect(episode_count=30, mcts=mcts)
+
   
